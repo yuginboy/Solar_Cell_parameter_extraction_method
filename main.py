@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
 
     # data = np.loadtxt('/home/yugin/VirtualboxShare/Giorgi.Tchutchulashvili/src/data/Dark_and_Ilum_AUPD1.dat')
-    data = np.loadtxt('/home/yugin/VirtualboxShare/Giorgi.Tchutchulashvili/src/data/reference_Si.dat')
+    data = np.loadtxt('data/reference_Si.dat')
     x = data[:, 0]
     y = data[:, 1]*100/1e4
     fig, ax = plt.subplots(figsize=(7, 5))
