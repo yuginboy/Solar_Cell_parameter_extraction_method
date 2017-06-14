@@ -80,8 +80,6 @@ def func_abs(b, I, V, Voc_inp, Isc_inp):
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
 
-
-    # data = np.loadtxt('/home/yugin/VirtualboxShare/Giorgi.Tchutchulashvili/src/data/Dark_and_Ilum_AUPD1.dat')
     data = np.loadtxt('data/reference_Si.dat')
     x = data[:, 0]
     y = data[:, 1]*100/1e4
