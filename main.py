@@ -138,7 +138,7 @@ if __name__ == '__main__':
     def func_cf(I, a, b, c, Voc_inp=Voc, Isc_inp=Isc):
         # for curve_fit procedure:
         p0 = np.array([a, b, c])
-        out = I - fun_for_minimization(p0, y, Voc_inp, Isc_inp)
+        out = np.abs(I - fun_for_minimization(p0, y, Voc_inp, Isc_inp))
         return out
 
     popt, pcov = curve_fit(func_cf, xdata=x, ydata=y, p0=b0, bounds=bounds, absolute_sigma=True)
@@ -178,6 +178,7 @@ if __name__ == '__main__':
 
     # b = np.asarray([1.5, 10000, 1000], dtype=float)
     ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
+    ax.plot(x, c_eq_I_V_lambertW(b, x, Voc, Isc, 0.01), '-y', label='DE cython')
 
     # ==================================
 
@@ -191,6 +192,10 @@ if __name__ == '__main__':
     print(fun_for_minimization(b=[1.5, 1000, 10000], Volts=np.array([0.03]), Voc_inp=0.5323, Isc_inp=-6.711e-5))
     print('---'*15)
     print(c_eq_I_V_lambertW(np.array([1.5, 1000, 10000]), np.array([0.03]), 0.5323, -6.711e-5, 0.0))
+
+    print('***'*20)
+    print("CF function: {}".format(np.sum(func_cf(y, b[0], b[1], b[2], Voc_inp=Voc, Isc_inp=Isc))))
+    print("DE_c function: {}".format(func_abs_c(b, y, x, Voc_inp=Voc, Isc_inp=Isc)))
 
     plt.show()
 
