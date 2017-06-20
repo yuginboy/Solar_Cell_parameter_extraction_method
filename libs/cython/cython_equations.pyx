@@ -1,5 +1,8 @@
 import numpy
+from scipy.special import lambertw
 cimport numpy
+
+
 cpdef numpy.ndarray[numpy.double_t, ndim=1] cVectorAdd_f(numpy.ndarray[numpy.double_t, ndim=1] a, numpy.ndarray[numpy.double_t, ndim=1] b):
     cdef int i, n
     n = numpy.size(a)
@@ -41,11 +44,11 @@ cpdef numpy.ndarray[numpy.double_t, ndim=1] c_eq_I_V_lambertW(
     y_noise = numpy.ndarray(N, dtype=numpy.double)
     Ical    = numpy.ndarray(N, dtype=numpy.double)
 
-    y_noise = rnd_scale* Isc * 2*numpy.random.random(size=N) - 1
+    y_noise = rnd_scale* Isc * (2*numpy.random.random(size=N) - 1)
 
     Ical = numpy.zeros(N)
     i = 0
-    for V in Volts:
+    for i in range(N):
         # arg = q*Rs/(n*kB*T)*(Isc - Voc/(Rs+Rsh))*np.exp(-q*Voc/(n*kB*T))* np.exp(q*(Rs*Isc+Rsh*V/(Rs+Rsh))/(n*kB*T))
         # Ical[i] = n*kB*T/(q*Rs)*lambertw(arg) + V/Rs - Isc - Rsh*V/(Rs*(Rs+Rsh))
 
@@ -71,15 +74,15 @@ cpdef numpy.ndarray[numpy.double_t, ndim=1] c_eq_I_V_lambertW(
         # =============================
 
         Ical[i] = -(
-            -q * V + (-lambertw(
-            q * b[1] * (Isc - (Voc - b[1] * Isc) / b[2]) * np.exp(-q * Voc / (b[0] * kB * T)) * b[2] /
-            (b[1] * b[0] * kB * T + b[2] * b[0] * kB * T) * np.exp(b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + V)
+            -q * Volts[i] + (-lambertw(
+            q * b[1] * (Isc - (Voc - b[1] * Isc) / b[2]) * numpy.exp(-q * Voc / (b[0] * kB * T)) * b[2] /
+            (b[1] * b[0] * kB * T + b[2] * b[0] * kB * T) * numpy.exp(b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + Volts[i])
                                                                 / b[0] / kB / T / (b[2] + b[1]))) +
-            b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + V) / b[0] / kB / T / (b[2] + b[1])) * b[0] * kB * T
+            b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + Volts[i]) / b[0] / kB / T / (b[2] + b[1])) * b[0] * kB * T
                     ) / q / b[1]
 
 
-        i = i+1
+        # i = i+1
     return -Ical + y_noise
 
 if __name__ == '__main__':

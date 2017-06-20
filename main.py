@@ -8,6 +8,9 @@ import numpy as np
 from scipy.special import lambertw
 from scipy.optimize import least_squares, curve_fit, differential_evolution
 import matplotlib.pylab as plt
+from libs.cython.cython_equations import c_eq_I_V_lambertW
+from timeit import default_timer as timer
+
 
 # V = 1 #[V]
 # I = 0.1 #[A]
@@ -25,7 +28,7 @@ def fun_for_minimization(b, Volts, Voc_inp, Isc_inp):
     Rsh = b[2]
 
     rnd_uniq = 2*np.random.random(size=Volts.size) - 1
-    y_noise = 0.01* Isc_inp * rnd_uniq
+    y_noise = 0.0* Isc_inp * rnd_uniq
 
     N = np.size(Volts)
     Ical = np.zeros(N)
@@ -74,6 +77,12 @@ def func(b, I, V, Voc_inp, Isc_inp):
 
 def func_abs(b, I, V, Voc_inp, Isc_inp):
     return np.sum(np.abs(fun_for_minimization(b, V, Voc_inp, Isc_inp) - I))
+
+
+
+def func_abs_c(b, I, V, Voc_inp, Isc_inp):
+    # with cython implementation:
+    return np.sum(np.abs( c_eq_I_V_lambertW(b, V, Voc_inp, Isc_inp, 0.01) - I ))
 
 
 
@@ -137,7 +146,7 @@ if __name__ == '__main__':
     print(pcov)
     b = popt.data
     print('===' * 15)
-    print('least_sq:' * 15)
+    print('least_sq:' )
     print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b[0], b[1], b[2]))
     ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-g', label='CF')
     plt.legend()
@@ -146,18 +155,29 @@ if __name__ == '__main__':
 
     # ==================================
     #
-    # bounds = [(1, 2), (1e3, 1e8), (1e3, 1e8)]
-    # # bounds = ([1, 0.1, 0.1], [2, np.inf, np.inf])
-    #
-    # result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e4), strategy='randtobest1exp',)
-    #
-    # b = result.x
-    # print('===' * 15)
-    # print('de:' * 15)
-    # print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b[0], b[1], b[2]))
-    #
-    # # b = np.asarray([1.5, 10000, 1000], dtype=float)
-    # ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
+    bounds = [(1, 2), (1e3, 1e8), (1e3, 1e8)]
+    # bounds = ([1, 0.1, 0.1], [2, np.inf, np.inf])
+
+    start = timer()
+    result = differential_evolution(func_abs_c, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e3),
+                                    strategy='randtobest1exp', )
+    de_func_abs_c_time = timer() - start
+    print("DE searching procedure of minimizing the func_abs_c tooks: {0:f} seconds".format(de_func_abs_c_time))
+
+    start = timer()
+    result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e3), strategy='randtobest1exp',)
+    de_func_abs_time = timer() - start
+    print("DE searching procedure of minimizing the func_abs tooks: {0:f} seconds".format(de_func_abs_time))
+
+
+
+    b = result.x
+    print('===' * 15)
+    print('de:' * 15)
+    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b[0], b[1], b[2]))
+
+    # b = np.asarray([1.5, 10000, 1000], dtype=float)
+    ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
 
     # ==================================
 
@@ -167,8 +187,10 @@ if __name__ == '__main__':
     plt.legend()
     # ax.set_xlim(xlim)
     # ax.set_ylim(ylim)
-
+    print('---'*15)
     print(fun_for_minimization(b=[1.5, 1000, 10000], Volts=np.array([0.03]), Voc_inp=0.5323, Isc_inp=-6.711e-5))
+    print('---'*15)
+    print(c_eq_I_V_lambertW(np.array([1.5, 1000, 10000]), np.array([0.03]), 0.5323, -6.711e-5, 0.0))
 
     plt.show()
 
