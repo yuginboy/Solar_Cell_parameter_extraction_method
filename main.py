@@ -59,10 +59,10 @@ def fun_for_minimization(b, Volts, Voc_inp, Isc_inp):
         # =============================
 
         Ical[i] = -(
-            -q * V + (-lambertw(
+            -q * V + (-(lambertw(
             q * b[1] * (Isc - (Voc - b[1] * Isc) / b[2]) * np.exp(-q * Voc / (b[0] * kB * T)) * b[2] /
             (b[1] * b[0] * kB * T + b[2] * b[0] * kB * T) * np.exp(b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + V)
-                                                                / b[0] / kB / T / (b[2] + b[1]))) +
+                                                                / b[0] / kB / T / (b[2] + b[1])))) +
             b[2] * q * (b[1] * (Isc + b[1] * Isc / b[2]) + V) / b[0] / kB / T / (b[2] + b[1])) * b[0] * kB * T
                     ) / q / b[1]
 
@@ -82,7 +82,7 @@ def func_abs(b, I, V, Voc_inp, Isc_inp):
 
 def func_abs_c(b, I, V, Voc_inp, Isc_inp):
     # with cython implementation:
-    return np.sum(np.abs( c_eq_I_V_lambertW(b, V, Voc_inp, Isc_inp, 0.01) - I ))
+    return 1e4*np.sum(np.abs( np.real(c_eq_I_V_lambertW(b, V, Voc_inp, Isc_inp, 0.01)) - I ))
 
 
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     # ==================================
 
 
-    b0 = np.asarray([1.65, 1.2e4, 0.684e7], dtype=float) # for refe Si sample
+    b0 = np.asarray([1.65, 1.2e4, 0.6833e7], dtype=float) # for refe Si sample
     # b0 = np.asarray([1.5, 1.0e4, 0.684e6], dtype=float)
     # bounds = [(1, 2), (0, np.inf), (0, np.inf)]
     bounds = ([1, 1e2, 1e2], [2, 1e8, 1e8])
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     def func_cf(I, a, b, c, Voc_inp=Voc, Isc_inp=Isc):
         # for curve_fit procedure:
         p0 = np.array([a, b, c])
-        out = np.abs(I - fun_for_minimization(p0, y, Voc_inp, Isc_inp))
+        out = np.sum(np.abs(I - fun_for_minimization(p0, y, Voc_inp, Isc_inp)))
         return out
 
     popt, pcov = curve_fit(func_cf, xdata=x, ydata=y, p0=b0, bounds=bounds, absolute_sigma=True)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     b = popt.data
     print('===' * 15)
     print('least_sq:' )
-    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b[0], b[1], b[2]))
+    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}, std = {std:1.5e}'.format(b[0], b[1], b[2], std=np.sum(func_cf(y, b[0], b[1], b[2], Voc_inp=Voc, Isc_inp=Isc))))
     ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-g', label='CF')
     plt.legend()
 
@@ -159,26 +159,30 @@ if __name__ == '__main__':
     # bounds = ([1, 0.1, 0.1], [2, np.inf, np.inf])
 
     start = timer()
-    result = differential_evolution(func_abs_c, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e3),
+    result_c = differential_evolution(func_abs_c, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e4),
                                     strategy='randtobest1exp', )
     de_func_abs_c_time = timer() - start
     print("DE searching procedure of minimizing the func_abs_c tooks: {0:f} seconds".format(de_func_abs_c_time))
 
     start = timer()
-    result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e3), strategy='randtobest1exp',)
+    result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e4), strategy='randtobest1exp',)
     de_func_abs_time = timer() - start
     print("DE searching procedure of minimizing the func_abs tooks: {0:f} seconds".format(de_func_abs_time))
 
 
 
-    b = result.x
+    b_de = result.x
+    b_c = result_c.x
     print('===' * 15)
     print('de:' * 15)
-    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b[0], b[1], b[2]))
+    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b_de[0], b_de[1], b_de[2]))
+    print('c_de:' * 15)
+    print('n = {0:1.6f}, Rs0 = {1:1.6f}, Rsh0 = {2:1.6f}'.format(b_c[0], b_c[1], b_c[2]))
 
     # b = np.asarray([1.5, 10000, 1000], dtype=float)
-    ax.plot(x, (fun_for_minimization(b, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
-    ax.plot(x, c_eq_I_V_lambertW(b, x, Voc, Isc, 0.01), '-y', label='DE cython')
+    ax.plot(x, (fun_for_minimization(b_de, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
+    ax.plot(x, c_eq_I_V_lambertW(b_c, x, Voc, Isc, 0.01), '-y', label='DE cython')
+    ax.plot(x, c_eq_I_V_lambertW(b_c, x, Voc, Isc, 0.01), '-y', label='DE cython ideal')
 
     # ==================================
 
@@ -194,8 +198,8 @@ if __name__ == '__main__':
     print(c_eq_I_V_lambertW(np.array([1.5, 1000, 10000]), np.array([0.03]), 0.5323, -6.711e-5, 0.0))
 
     print('***'*20)
-    print("CF function: {}".format(np.sum(func_cf(y, b[0], b[1], b[2], Voc_inp=Voc, Isc_inp=Isc))))
-    print("DE_c function: {}".format(func_abs_c(b, y, x, Voc_inp=Voc, Isc_inp=Isc)))
+    print("std CF function: {}".format(1e4*np.sum(func_cf(y, b[0], b[1], b[2], Voc_inp=Voc, Isc_inp=Isc))))
+    print("std DE_c function: {}".format(func_abs_c(b_c, y, x, Voc_inp=Voc, Isc_inp=Isc)))
 
     plt.show()
 
