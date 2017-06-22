@@ -159,13 +159,13 @@ if __name__ == '__main__':
     # bounds = ([1, 0.1, 0.1], [2, np.inf, np.inf])
 
     start = timer()
-    result_c = differential_evolution(func_abs_c, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e4),
+    result_c = differential_evolution(func_abs_c, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e2),
                                     strategy='randtobest1exp', )
     de_func_abs_c_time = timer() - start
     print("DE searching procedure of minimizing the func_abs_c tooks: {0:f} seconds".format(de_func_abs_c_time))
 
     start = timer()
-    result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e4), strategy='randtobest1exp',)
+    result = differential_evolution(func_abs, bounds=bounds, args=args, disp=False, tol=1e-11, maxiter=int(1e2), strategy='randtobest1exp',)
     de_func_abs_time = timer() - start
     print("DE searching procedure of minimizing the func_abs tooks: {0:f} seconds".format(de_func_abs_time))
 
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     # b = np.asarray([1.5, 10000, 1000], dtype=float)
     ax.plot(x, (fun_for_minimization(b_de, Volts=x, Voc_inp=Voc, Isc_inp=Isc)), '-r', label='DE')
     ax.plot(x, c_eq_I_V_lambertW(b_c, x, Voc, Isc, 0.01), '-y', label='DE cython')
-    ax.plot(x, c_eq_I_V_lambertW(b_c, x, Voc, Isc, 0.01), '-y', label='DE cython ideal')
+    ax.plot(x, c_eq_I_V_lambertW(np.array(b), x, Voc, Isc, 0.01), '-y', label='DE cython ideal')
 
     # ==================================
 
